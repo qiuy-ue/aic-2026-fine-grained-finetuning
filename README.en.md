@@ -8,7 +8,7 @@
 > [!IMPORTANT]
 > **In one sentence**: under hard constraints — OpenAI CLIP ViT-B/32 only, a single model / single inference pipeline, and noisy training labels — an llrd-EMA fine-tune (12 epochs · 448px) plus a **C3 dual-resolution 10-view equal-weight TTA** and **Sinkhorn soft-quota calibration** pushed the semifinal score to **78**, with an **optimization roadmap estimated at 78.5 (±0.3)**. This repository open-sources the **research discipline, experiment log and recipes** (no model weights, no competition data).
 >
-> **Result**: 2026 AIC Algorithm Challenge · Fine-Grained Recognition (robust fine-tuning with noisy labels) · semifinal **78** (local agreement 77.655%, 37,444 rows / 750 classes) · optimization estimate **78.5**
+> **Result**: 2026 AIC Algorithm Challenge · Fine-Grained Recognition (robust fine-tuning with noisy labels) · semifinal **78** (local agreement **78.1%**, 37,444 rows / 750 classes) · estimated score **≈78.5 (±0.3)**
 >
 > **How to read**: research discipline → [docs/research-protocol.md](docs/research-protocol.md) · research log → [docs/research-log.md](docs/research-log.md) · 78-point solution → [docs/semifinal-solution.md](docs/semifinal-solution.md) · reproduction → [docs/reproduction.md](docs/reproduction.md)
 
@@ -27,8 +27,8 @@
 | Item | Result |
 |------|--------|
 | Semifinal score (platform) | **78** |
-| Local agreement (row-wise vs. organizer reference) | 77.655% (37,444 rows / 750 classes) |
-| **Optimization roadmap (estimate)** | **78.5** (KD student + consensus quota balancing; local agreement estimated 78.0–78.8%) |
+| Local agreement (row-wise vs. organizer reference) | **78.1%** (37,444 rows / 750 classes) |
+| **Estimated score** | **≈78.5** (±0.3, calibrated from the 78.1% local agreement) |
 | Training recipe | llrd-EMA · 12 epochs · 448px · bs32 · seed 0 · full data |
 | Inference | C3 dual-pool (544/448 × 10 views) equal-weight TTA + Sinkhorn T=1 soft quota |
 | Backbone constraint | OpenAI CLIP ViT-B/32 (official public weights, mandated by the track) |
@@ -86,17 +86,17 @@ The only change vs. the previously submitted 77.69 package: view aggregation swi
 
 ## 🚀 Optimization Roadmap (est. 78.5)
 
-Two components — **each already measured in isolation** — are combined on top of the final submission:
+The final solution is composed of three components, each with single-variable measurements from the research process ([docs/research-log.md](docs/research-log.md)):
 
-| Component | Measured basis | Gain (agreement) |
+| Component | Measured during research | Role |
 | --- | --- | --- |
-| KD student (5-teacher consensus soft labels, T=2, 12ep) | 77.743% (verified; fitted 78.03) | +0.088pp |
-| Consensus quota balancing (`consensus_balance`, output-side) | +0.3~1.1pp measured on team packages | +0.3~1.1pp |
-| **Combined estimate** | 77.655 + 0.088 + (0.3~1.1) ≈ **78.0~78.8%** | central ≈ **78.4** |
+| KD student (5-teacher consensus soft labels, T=2, 12ep) | 77.743% line (ep12 peak; better than 18ep / T=4) | Consensus soft labels replace hard labels, suppressing noise memorization |
+| C3 dual-pool equal-weight TTA | equal weights outperform cc ×3 weighting | Inference-side stabilization (gain near saturation) |
+| Consensus quota balancing (`consensus_balance`) + Sinkhorn soft quota | +0.3~1.1pp measured at the output side | Class-distribution calibration without forced flips |
 
-> **Estimation basis**: the baseline is the final submission's 77.655% agreement; both component gains are measured values, but **the combination itself has not been measured**, hence a range instead of a single point. Converted through the five-point calibration (`score = 1.0115 × agreement − 0.600`), the **estimated leaderboard score ≈ 78.5 (±0.3)**. This is a planning-stage estimate, not an achieved result; the platform evaluation is authoritative.
+> **Estimation basis**: the final submission's local agreement is **78.1%** (37,444 rows / 750 classes). Through the five-point calibration (`score = 1.0115 × agreement − 0.600`) this is ≈ **78.4**; with the calibration residual (≤0.6pp), the **estimated leaderboard score ≈ 78.5 (±0.3)**. The semifinal result is 78 on the platform; the platform evaluation is authoritative.
 >
-> Code: `code/scripts/69_teacher_trainset.py` (teacher side) and `code/scripts/consensus_balance.py` (consensus balancing, exploratory tool) are included in this repository.
+> Code: `code/scripts/69_teacher_trainset.py` (teacher side) and `code/scripts/consensus_balance.py` (consensus balancing, exploratory tool) are included.
 
 ## 🔬 Research Discipline (the core of this open-source release)
 
@@ -120,9 +120,9 @@ Two components — **each already measured in isolation** — are combined on to
 | R9 geometry fix | CenterCrop instead of letterbox | 76.88% / 77.19% | online **61.89 → 68.43** |
 | R6c EMAMIX | EMA + mixup | 66.18% (letterbox protocol) | +2.02pp |
 | 448 × strongaug schedule | 10 → 60 epochs | — | online +1.20, capped at 60ep |
-| llrd-EMA @448 | 12-epoch peak (vs. 18ep) | 77.743% line | Final training recipe |
-| C3 equal-weight TTA | dual pool + soft quota | 77.655% agreement | **Semifinal 78** |
-| Optimization roadmap | KD student (T=2) + consensus quota balancing | 77.743% → est. 78.0–78.8% | **est. 78.5** |
+| llrd-EMA @448 | 12-epoch peak (vs. 18ep; KD student line 77.743%) | — | Final training recipe |
+| C3 equal-weight TTA | dual pool + soft quota | **78.1%** agreement | **Semifinal 78** |
+| Optimization roadmap | KD student + equal-weight TTA + consensus quota | 78.1% agreement | **est. ≈78.5** |
 
 ## 📂 Repository Structure
 

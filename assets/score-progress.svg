@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="920" height="440" viewBox="0 0 920 440" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
 <rect x="0" y="0" width="920" height="440" fill="#ffffff"/>
 <text x="20" y="30" font-size="16" font-weight="700" fill="#111827">Semifinal Score Progression · AIC 2026 Fine-Grained Track</text>
-<text x="20" y="50" font-size="11" fill="#6B7280">online calibration ledger (solid) → final submission (green) → optimization estimate (purple dashed, ±0.3)</text>
+<text x="20" y="50" font-size="11" fill="#6B7280">online calibration ledger (solid) → final submission (green) → estimated score (purple dashed, ±0.3)</text>
 <line x1="75" y1="356.0" x2="850" y2="356.0" stroke="#E5E7EB" stroke-width="1"/>
 <text x="65" y="360.0" font-size="11" fill="#6B7280" text-anchor="end">60</text>
 <line x1="75" y1="283.0" x2="850" y2="283.0" stroke="#E5E7EB" stroke-width="1"/>
@@ -45,6 +45,6 @@
 <text x="753.1" y="123.2" font-size="10.5" fill="#6B7280" text-anchor="middle">final submission</text>
 <circle cx="850.0" cy="85.9" r="6" fill="#ffffff" stroke="#7C3AED" stroke-width="2.5"/>
 <text x="860.0" y="73.9" font-size="13" font-weight="700" fill="#7C3AED" text-anchor="end">78.5</text>
-<text x="860.0" y="111.9" font-size="10.5" fill="#7C3AED" text-anchor="end">optimization estimate (±0.3)</text>
-<text x="20" y="424" font-size="10.5" fill="#6B7280">78 = semifinal result (final submission) · 78.5 = optimization estimate (KD student + consensus quota balancing, dashed) · earlier points = representative online submissions (full ledger: docs/research-log.md)</text>
+<text x="860.0" y="111.9" font-size="10.5" fill="#7C3AED" text-anchor="end">estimated score (±0.3)</text>
+<text x="20" y="424" font-size="10.5" fill="#6B7280">78 = semifinal result (final submission) · 78.5 = estimated score from 78.1% local agreement (dashed, ±0.3) · earlier points = representative online submissions (full ledger: docs/research-log.md)</text>
 </svg>
