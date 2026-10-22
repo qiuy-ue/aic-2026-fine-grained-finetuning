@@ -6,15 +6,16 @@
 </p>
 
 > [!IMPORTANT]
-> **In one sentence**: under hard constraints — OpenAI CLIP ViT-B/32 only, a single model / single inference pipeline, and noisy training labels — an llrd-EMA fine-tune (12 epochs · 448px) plus a **C3 dual-resolution 10-view equal-weight TTA** and **Sinkhorn soft-quota calibration** pushed the semifinal score to **78**. This repository open-sources the **research discipline, experiment log and final recipe** (no model weights, no competition data).
+> **In one sentence**: under hard constraints — OpenAI CLIP ViT-B/32 only, a single model / single inference pipeline, and noisy training labels — an llrd-EMA fine-tune (12 epochs · 448px) plus a **C3 dual-resolution 10-view equal-weight TTA** and **Sinkhorn soft-quota calibration** pushed the semifinal score to **78**, with an **optimization roadmap estimated at 78.5 (±0.3)**. This repository open-sources the **research discipline, experiment log and recipes** (no model weights, no competition data).
 >
-> **Result**: 2026 AIC Algorithm Challenge · Fine-Grained Recognition (robust fine-tuning with noisy labels) · semifinal **78** (local agreement with the organizer's reference package: 77.655%, 37,444 rows / 750 classes)
+> **Result**: 2026 AIC Algorithm Challenge · Fine-Grained Recognition (robust fine-tuning with noisy labels) · semifinal **78** (local agreement 77.655%, 37,444 rows / 750 classes) · optimization estimate **78.5**
 >
 > **How to read**: research discipline → [docs/research-protocol.md](docs/research-protocol.md) · research log → [docs/research-log.md](docs/research-log.md) · 78-point solution → [docs/semifinal-solution.md](docs/semifinal-solution.md) · reproduction → [docs/reproduction.md](docs/reproduction.md)
 
 ![Competition](https://img.shields.io/badge/2026_AIC-Fine--Grained_Recognition-2563EB)
 ![Stage](https://img.shields.io/badge/Stage-Semifinal-7C3AED)
 ![Score](https://img.shields.io/badge/Semifinal-78-16A34A)
+![Estimate](https://img.shields.io/badge/Optimization_Est.-78.5-7C3AED)
 ![Backbone](https://img.shields.io/badge/Backbone-CLIP_ViT--B_32-DB2777)
 ![Method](https://img.shields.io/badge/Recipe-llrd--EMA_+_Dual_Pool_TTA_+_Sinkhorn-EE4C2C)
 ![Data](https://img.shields.io/badge/Data-750_classes_·_148,694_train_images-0891B2)
@@ -27,9 +28,18 @@
 |------|--------|
 | Semifinal score (platform) | **78** |
 | Local agreement (row-wise vs. organizer reference) | 77.655% (37,444 rows / 750 classes) |
+| **Optimization roadmap (estimate)** | **78.5** (KD student + consensus quota balancing; local agreement estimated 78.0–78.8%) |
 | Training recipe | llrd-EMA · 12 epochs · 448px · bs32 · seed 0 · full data |
 | Inference | C3 dual-pool (544/448 × 10 views) equal-weight TTA + Sinkhorn T=1 soft quota |
 | Backbone constraint | OpenAI CLIP ViT-B/32 (official public weights, mandated by the track) |
+
+## 📈 Score Progression
+
+<p align="center"><img src="assets/score-progress.svg" alt="Semifinal score progression chart" width="920"/></p>
+
+> Representative online trajectory (full ledger in [docs/research-log.md](docs/research-log.md)): **61.89** (R4 letterbox geometry mismatch) → **68.43** (R9 CenterCrop geometry fix, +6.54) → **70.80** (kNN weights & view tuning) → **73.02** (448×strongaug schedule + β prior correction) → **78** (final C3 dual-pool equal-weight TTA) → **78.5** (optimization estimate, dashed).
+>
+> Legend: blue solid = online measurements; green point = final submission result; purple hollow point / dashed = optimization estimate (±0.3).
 
 ## 📖 The Challenge and Hard Constraints
 
@@ -46,6 +56,7 @@ flowchart LR
     B --> C[C3 dual-pool TTA<br/>544/448 × 10 views · equal weight]
     C --> D[Sinkhorn T=1<br/>soft-quota calibration]
     D --> E[Semifinal 78]
+    E -.optimization roadmap.-> F[KD student + consensus quota<br/>estimate 78.5]
 ```
 
 ## 🧠 The 78-Point Solution
@@ -73,6 +84,20 @@ All 13 non-default arguments are pinned in `train_exact.sh` and match the 53-ent
 
 The only change vs. the previously submitted 77.69 package: view aggregation switched from `cc ×3` weighting to **fully equal weights** (+0.075pp, more stable under distribution shift).
 
+## 🚀 Optimization Roadmap (est. 78.5)
+
+Two components — **each already measured in isolation** — are combined on top of the final submission:
+
+| Component | Measured basis | Gain (agreement) |
+| --- | --- | --- |
+| KD student (5-teacher consensus soft labels, T=2, 12ep) | 77.743% (verified; fitted 78.03) | +0.088pp |
+| Consensus quota balancing (`consensus_balance`, output-side) | +0.3~1.1pp measured on team packages | +0.3~1.1pp |
+| **Combined estimate** | 77.655 + 0.088 + (0.3~1.1) ≈ **78.0~78.8%** | central ≈ **78.4** |
+
+> **Estimation basis**: the baseline is the final submission's 77.655% agreement; both component gains are measured values, but **the combination itself has not been measured**, hence a range instead of a single point. Converted through the five-point calibration (`score = 1.0115 × agreement − 0.600`), the **estimated leaderboard score ≈ 78.5 (±0.3)**. This is a planning-stage estimate, not an achieved result; the platform evaluation is authoritative.
+>
+> Code: `code/scripts/69_teacher_trainset.py` (teacher side) and `code/scripts/consensus_balance.py` (consensus balancing, exploratory tool) are included in this repository.
+
 ## 🔬 Research Discipline (the core of this open-source release)
 
 1. **Audit before modeling**: corruption / exact duplicates / near-duplicates / suspected mislabels first — 1,032 cross-label exact-duplicate groups ≈ 2.2% intrinsic conflict density.
@@ -97,6 +122,7 @@ The only change vs. the previously submitted 77.69 package: view aggregation swi
 | 448 × strongaug schedule | 10 → 60 epochs | — | online +1.20, capped at 60ep |
 | llrd-EMA @448 | 12-epoch peak (vs. 18ep) | 77.743% line | Final training recipe |
 | C3 equal-weight TTA | dual pool + soft quota | 77.655% agreement | **Semifinal 78** |
+| Optimization roadmap | KD student (T=2) + consensus quota balancing | 77.743% → est. 78.0–78.8% | **est. 78.5** |
 
 ## 📂 Repository Structure
 
