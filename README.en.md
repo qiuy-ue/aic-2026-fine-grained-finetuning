@@ -11,11 +11,14 @@
 > **Result**: 2026 AIC Algorithm Challenge · Fine-Grained Recognition (robust fine-tuning with noisy labels) · semifinal **78** (local agreement **78.1%**, 37,444 rows / 750 classes) · estimated score **≈78.5 (±0.3)**
 >
 > **How to read**: research discipline → [docs/research-protocol.md](docs/research-protocol.md) · research log → [docs/research-log.md](docs/research-log.md) · 78-point solution → [docs/semifinal-solution.md](docs/semifinal-solution.md) · reproduction → [docs/reproduction.md](docs/reproduction.md)
+>
+> **Got compute?** → take the [⚡ Brute-Force Scaling Recipe](#-brute-force-scaling-recipe-advanced) (640px / bs128 / 24–30ep / 3-pool TTA — the goal: give reproducers a shot at beating the 78.5 estimate)
 
 ![Competition](https://img.shields.io/badge/2026_AIC-Fine--Grained_Recognition-2563EB)
 ![Stage](https://img.shields.io/badge/Stage-Semifinal-7C3AED)
 ![Score](https://img.shields.io/badge/Semifinal-78-16A34A)
 ![Estimate](https://img.shields.io/badge/Optimization_Est.-78.5-7C3AED)
+![Power](https://img.shields.io/badge/Brute--Force-Scaling_Recipe-F59E0B)
 ![Backbone](https://img.shields.io/badge/Backbone-CLIP_ViT--B_32-DB2777)
 ![Method](https://img.shields.io/badge/Recipe-llrd--EMA_+_Dual_Pool_TTA_+_Sinkhorn-EE4C2C)
 ![Data](https://img.shields.io/badge/Data-750_classes_·_148,694_train_images-0891B2)
@@ -97,6 +100,42 @@ The final solution is composed of three components, each with single-variable me
 > **Estimation basis**: the final submission's local agreement is **78.1%** (37,444 rows / 750 classes). Through the five-point calibration (`score = 1.0115 × agreement − 0.600`) this is ≈ **78.4**; with the calibration residual (≤0.6pp), the **estimated leaderboard score ≈ 78.5 (±0.3)**. The semifinal result is 78 on the platform; the platform evaluation is authoritative.
 >
 > Code: `code/scripts/69_teacher_trainset.py` (teacher side) and `code/scripts/consensus_balance.py` (consensus balancing, exploratory tool) are included.
+
+## ⚡ Brute-Force Scaling Recipe (Advanced)
+
+The recipe above is our **measured** reproduction baseline (78.1%). With more compute (multi-GPU A100 / H100, longer training windows), you can take this **compute-for-ceiling** scaling route — the goal: give reproducers a shot at beating the 78.5 estimate.
+
+| Setting | Validated recipe (baseline) | ⚡ Scaled recipe (big VRAM) |
+| --- | --- | --- |
+| Resolution | 448 | **640** (interpolated pos_embed, end-to-end fine-tune) |
+| Batch size | 32 | **128** (or 32 × 4 grad accumulation) |
+| Epochs | 12 | **24–30** (scaled together with stronger regularization + EMA) |
+| backbone lr | 2e-5 | **3e-5** (conservative sqrt scaling for batch ×4) |
+| head lr | 1e-3 | **2e-3** |
+| llrd | 0.85 | 0.85 |
+| warmup | 5% | **8%** |
+| drop_path · random erasing | 0.2 · 0.25 | **0.3 · 0.35** (required regularization for larger updates) |
+| EMA decay | 0.9995 | **0.9996** |
+| label smoothing | 0.1 | 0.1–0.15 |
+| mixup · cutmix · mix_prob | 0.8 · 1.0 · 0.7 | unchanged |
+| degrade_p · cosine margin | 0.875 · 0.2 | unchanged |
+| co-teaching · small-class oversample | on (forget 0.05) · ×4.0 | unchanged |
+| TTA view pools | 544/448 × 10 views, equal weight | **640/544/448 × 10 views, equal weight (3 pools)** |
+| KD teachers | 5-teacher consensus · T=2 | **7–9 teachers (incl. 640 members) · T=2** |
+| Output calibration | Sinkhorn T=1 | Sinkhorn T=1 + consensus quota balancing |
+| Training compute (est.) | ≈150 s/epoch on one RTX 4090D | **≈5–6×** (resolution 2.04× × epochs 2.5×) |
+| Inference compute (est.) | 20 views/image (2 pools) | 30 views/image (3 pools, ≈1.5×) |
+
+**Why scale this way (grounded in our verified mechanisms):**
+
+1. **Resolution is the most direct ceiling lever** — this task is about detail fidelity; 640 preserves more texture/stroke information at training time. ⚠️ You **must train end-to-end** with the interpolated pos_embed: we measured a ~4pp drop when a low-res checkpoint was used for high-res inference (position-embedding distribution shift).
+2. **Batch ×4 requires matching lr and regularization** — larger batches give more stable noisy gradients, but drop_path / random erasing **must** be strengthened in lockstep, otherwise noise memorization gets worse (2.2% of this dataset is cross-label conflicts).
+3. **More epochs only help when paired with higher resolution** — at a fixed resolution we measured the 448 schedule capping at 60ep and peaking at 12ep (18ep regressed); epochs alone overfit. The scaled recipe gives 24–30ep room by combining 640 + stronger regularization + bigger batches, with **EMA weights + pre-registered early stopping** as the backstop.
+4. **TTA / distillation are low-risk "compute-for-stability" increments** — single-pool equal-weight gain is nearly saturated (~+0.075pp); 3-pool TTA and more KD teachers mainly improve cross-distribution stability.
+
+**Gating discipline still applies**: validate the scaled recipe on fold0 at ≥ baseline +0.30~0.50pp with macro/middle not degrading before dual-fold and full-data runs; keep train/validation/submission geometry identical (our −8pp lesson).
+
+> Honest note: this section is a **scaling roadmap** for brute-force reproductions — not our measured submission recipe; the combination goes beyond the configurations we validated. If you run it and beat our local agreement or leaderboard score, please open an issue — we will update this table with your results.
 
 ## 🔬 Research Discipline (the core of this open-source release)
 

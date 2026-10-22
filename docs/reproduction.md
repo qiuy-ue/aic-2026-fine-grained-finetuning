@@ -56,3 +56,7 @@ python verify_submission.py pred-results.zip
 ## 7. 已知坑
 
 见 [known-pitfalls.md](known-pitfalls.md) —— 13 条踩坑记录（几何错配、`/dev/shm`、伪装 JPG、mixup 实现、fold-all 权重、分辨率迁移、manifest 冻结等）。
+
+## 8. 大算力复现
+
+算力充足时，可尝试 README 中的「⚡ 力大砖飞：算力放大配方」（640px / bs128 / 24–30ep / 三池 TTA）——这是一条**未实测组合**的放大路线，请按门控纪律（fold0 先验证 ≥ 基线 +0.30~0.50pp）自行验证。
