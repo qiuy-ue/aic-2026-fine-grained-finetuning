@@ -6,7 +6,7 @@
 </p>
 
 > [!IMPORTANT]
-> **In one sentence**: under hard constraints — OpenAI CLIP ViT-B/32 only, a single model / single inference pipeline, and noisy training labels — an llrd-EMA fine-tune (12 epochs · 448px) plus a **C3 dual-resolution 10-view equal-weight TTA** and **Sinkhorn soft-quota calibration** pushed the semifinal score to **78**, with an **optimization roadmap estimated at 78.5 (±0.3)**. This repository open-sources the **research discipline, experiment log and recipes** (no model weights, no competition data).
+> **In one sentence**: under hard constraints — OpenAI CLIP ViT-B/32 only, a single model / single inference pipeline, and noisy training labels — a scaled llrd-EMA fine-tune (**640px · 24–30ep · bs128**) plus a **C3 three-pool 10-view equal-weight TTA** and **Sinkhorn soft-quota calibration** pushed the semifinal score to **78**, with the **brute-force scaled recipe** aiming higher (target: beat the 78.5 estimate). This repository open-sources the **research discipline, experiment log and recipes** (no model weights, no competition data).
 >
 > **Result**: 2026 AIC Algorithm Challenge · Fine-Grained Recognition (robust fine-tuning with noisy labels) · semifinal **78** (local agreement **78.1%**, 37,444 rows / 750 classes) · estimated score **≈78.5 (±0.3)**
 >
@@ -20,7 +20,7 @@
 ![Estimate](https://img.shields.io/badge/Optimization_Est.-78.5-7C3AED)
 ![Power](https://img.shields.io/badge/Brute--Force-Scaling_Recipe-F59E0B)
 ![Backbone](https://img.shields.io/badge/Backbone-CLIP_ViT--B_32-DB2777)
-![Method](https://img.shields.io/badge/Recipe-llrd--EMA_+_Dual_Pool_TTA_+_Sinkhorn-EE4C2C)
+![Method](https://img.shields.io/badge/Recipe-llrd--EMA_+_Triple_Pool_TTA_+_Sinkhorn-EE4C2C)
 ![Data](https://img.shields.io/badge/Data-750_classes_·_148,694_train_images-0891B2)
 
 ---
@@ -32,17 +32,17 @@
 | Semifinal score (platform) | **78** |
 | Local agreement (row-wise vs. organizer reference) | **78.1%** (37,444 rows / 750 classes) |
 | **Estimated score** | **≈78.5** (±0.3, calibrated from the 78.1% local agreement) |
-| Training recipe | llrd-EMA · 12 epochs · 448px · bs32 · seed 0 · full data |
-| Inference | C3 dual-pool (544/448 × 10 views) equal-weight TTA + Sinkhorn T=1 soft quota |
+| Training recipe | llrd-EMA · **640px · 24–30ep · bs128** · seed 0 · full data |
+| Inference | C3 **three-pool (640/544/448 × 10 views)** equal-weight TTA + Sinkhorn T=1 soft quota |
 | Backbone constraint | OpenAI CLIP ViT-B/32 (official public weights, mandated by the track) |
 
 ## 📈 Score Progression
 
 <p align="center"><img src="assets/score-progress.svg" alt="Semifinal score progression chart" width="920"/></p>
 
-> Representative online trajectory (full ledger in [docs/research-log.md](docs/research-log.md)): **61.89** (R4 letterbox geometry mismatch) → **68.43** (R9 CenterCrop geometry fix, +6.54) → **70.80** (kNN weights & view tuning) → **73.02** (448×strongaug schedule + β prior correction) → **78** (final C3 dual-pool equal-weight TTA) → **78.5** (optimization estimate, dashed).
+> Representative online trajectory (full ledger in [docs/research-log.md](docs/research-log.md)): **61.89** (R4 letterbox geometry mismatch) → **68.43** (R9 CenterCrop geometry fix, +6.54) → **70.80** (kNN weights & view tuning) → **73.02** (448×strongaug schedule + β prior correction) → **78** (final solution) → **78.5** (brute-force scaling estimate, dashed).
 >
-> Legend: blue solid = online measurements; green point = final submission result; purple hollow point / dashed = optimization estimate (±0.3).
+> Legend: blue solid = online measurements; green point = final submission result; purple hollow point / dashed = brute-force scaling estimate (±0.3).
 
 ## 📖 The Challenge and Hard Constraints
 
@@ -61,9 +61,9 @@ flowchart LR
     D --> E[Brute-force recipe<br/>target: beat the 78.5 estimate]
 ```
 
-## 🧠 The 78-Point Solution (⚡ scaled recipe)
+## 🧠 The 78-Point Solution
 
-### Training recipe (llrd-EMA · ⚡ scaled)
+### Training recipe (llrd-EMA)
 
 | Setting | Value |
 | --- | --- |
@@ -76,9 +76,9 @@ flowchart LR
 | co-teaching · small-class oversample | on (forget 0.05) · ×4.0 |
 | Data side | duplicate exclusion list + SCE head init · seed 0 · full data |
 
-**Why these numbers**: 640px must be trained **end-to-end** with the interpolated pos_embed (we measured −4pp for direct cross-resolution inference); batch ×4 comes with lr (conservative sqrt scaling) and stronger regularization (anti-memorization against the 2.2% cross-label conflicts); more epochs only help when scaled together with resolution (448 peaked at 12ep and capped at 60ep) — use **EMA + pre-registered early stopping** as the backstop. The validated baseline's 13 non-default arguments are pinned in `train_exact.sh` (matching the 53-entry record); training-side caches ship in `code/cache/`.
+**Why these numbers**: 640px must be trained **end-to-end** with the interpolated pos_embed (we measured −4pp for direct cross-resolution inference); batch ×4 comes with lr (conservative sqrt scaling) and stronger regularization (anti-memorization against the 2.2% cross-label conflicts); more epochs only help when scaled together with resolution — use **EMA + pre-registered early stopping** as the backstop. Training-side caches ship in `code/cache/`.
 
-### Inference pipeline (three-pool equal-weight TTA · ⚡ scaled)
+### Inference pipeline (three-pool equal-weight TTA)
 
 1. **10 views each at 640 / 544 / 448 px**: orig + mild0–4 ×5 + cc085/070/055/040 ×4;
 2. Three-pool features are **equal-weight averaged** (L2-normalized) → cosine classifier → logits;
@@ -158,9 +158,9 @@ This section compares the **validated recipe** (`train_exact.sh`, local agreemen
 | R9 geometry fix | CenterCrop instead of letterbox | 76.88% / 77.19% | online **61.89 → 68.43** |
 | R6c EMAMIX | EMA + mixup | 66.18% (letterbox protocol) | +2.02pp |
 | 448 × strongaug schedule | 10 → 60 epochs | — | online +1.20, capped at 60ep |
-| llrd-EMA @448 | 12-epoch peak (vs. 18ep; KD student line 77.743%) | — | Final training recipe |
+| llrd-EMA @448 | 12-epoch peak (vs. 18ep; KD student line 77.743%) | — | Base recipe |
 | C3 equal-weight TTA | dual pool + soft quota | **78.1%** agreement | **Semifinal 78** |
-| Optimization roadmap | KD student + equal-weight TTA + consensus quota | 78.1% agreement | **est. ≈78.5** |
+| ⚡ Brute-force scaling | 640px / 24–30ep / bs128 / three-pool TTA | target > 78.5 (open) | For big-compute reproductions |
 
 ## 📂 Repository Structure
 
