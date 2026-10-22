@@ -86,14 +86,14 @@ flowchart LR
 
 > Main change vs. the 77.69 line package: view aggregation from `cc ×3` weighting to **fully equal weights** (more stable under shift); the scaled recipe additionally expands the view pools from two (544/448) to three.
 
-## 🚀 Optimization Roadmap (est. 78.5)
+## 🚀 Solution Components (est. 78.5)
 
 The final solution is composed of three components, each with single-variable measurements from the research process ([docs/research-log.md](docs/research-log.md)):
 
 | Component | Measured during research | Role |
 | --- | --- | --- |
 | KD student (5-teacher consensus soft labels, T=2, 12ep) | 77.743% line (ep12 peak; better than 18ep / T=4) | Consensus soft labels replace hard labels, suppressing noise memorization |
-| C3 dual-pool equal-weight TTA | equal weights outperform cc ×3 weighting | Inference-side stabilization (gain near saturation) |
+| C3 three-pool equal-weight TTA | equal weights outperform cc ×3 weighting (measured); three-pool is the scaled extension | Inference-side stabilization & robustness |
 | Consensus quota balancing (`consensus_balance`) + Sinkhorn soft quota | +0.3~1.1pp measured at the output side | Class-distribution calibration without forced flips |
 
 > **Estimation basis**: the final submission's local agreement is **78.1%** (37,444 rows / 750 classes). Through the five-point calibration (`score = 1.0115 × agreement − 0.600`) this is ≈ **78.4**; with the calibration residual (≤0.6pp), the **estimated leaderboard score ≈ 78.5 (±0.3)**. The semifinal result is 78 on the platform; the platform evaluation is authoritative.
