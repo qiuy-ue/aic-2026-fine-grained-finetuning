@@ -35,6 +35,10 @@
   python scripts\\59_recipe_pack.py --pool runs\\xxx_pool512_ep12\\pool.npz --recipe base --dry-run
   python scripts\\59_recipe_pack.py --pool runs\\xxx_pool512_ep12\\pool.npz \\
          --pool-lo runs\\yyy_pool448_ep12\\pool.npz --recipe greedy
+  # ⚡ 三池（力大砖飞放大配方：640/544/448 等权）
+  python scripts\\59_recipe_pack.py --pool runs\\..\\xx_pool640_ep30\\pool.npz \\
+         --pool-mid runs\\..\\xx_pool544_ep30\\pool.npz --pool-lo runs\\..\\xx_pool448_ep30\\pool.npz \\
+         --recipe custom --views <views> --recipe-mid custom --views-mid <views> --recipe-lo custom --views-lo <views>
   python scripts\\59_recipe_pack.py --pool ... --recipe custom --views orig,cc085,mild0,mild1
 """
 import _bootstrap  # noqa: F401
@@ -133,6 +137,18 @@ def main():
     ap.add_argument("--pool", type=str, required=True, help="高分辨率池子（或唯一的池子）")
     ap.add_argument("--pool-lo", type=str, default=None,
                     help="低分辨率池子；给了就做多尺度 L2((X_lo+X_hi)/2)，口径同 45 号")
+    # ⚡ 力大砖飞三池扩展：额外接受一个中间分辨率池子，三池等权 X = L2((X_lo + X_mid + X_hi)/3)。
+    #    ⛔ 不传 --pool-mid 时行为与旧版逐位一致（向后兼容）。
+    ap.add_argument("--pool-mid", type=str, default=None,
+                    help="中间分辨率池子（三池扩展）；与 --pool-lo 一起构成 640/544/448 三池")
+    ap.add_argument("--recipe-mid", type=str, default="base",
+                    help="【中分支】配方，默认 base（语义同 --recipe-lo）")
+    ap.add_argument("--views-mid", type=str, default=None,
+                    help="--recipe-mid custom 时的逗号分隔视角名")
+    ap.add_argument("--weights-mid", type=str, default=None,
+                    help="【中分支】逐视角权重覆盖，格式同 --weights")
+    ap.add_argument("--w-mid", type=float, default=1.0,
+                    help="三池时【中分支】相对权重（默认 1.0 = 三池等权）")
     ap.add_argument("--recipe", type=str, default="base",
                     help="【高分支】配方。预设名 或 custom（配 --views）。可用：" + "/".join(RECIPES))
     # ⭐低分支单独指定：实验 S 的设计就是「448 侧固定 base、只换 544 侧的配方」——
@@ -243,6 +259,50 @@ def main():
                   % (args.w_hi, args.w_hi, 1.0 + args.w_hi))
             tag += "_whi%g" % args.w_hi
 
+    # ⚡ 三池扩展：中分支 + 三池等权（力大砖飞放大配方）
+    nmid = None
+    if args.pool_mid:
+        if args.recipe_mid == "custom":
+            if not args.views_mid:
+                raise SystemExit("⛔ --recipe-mid custom 必须配 --views-mid")
+            nm, wm = [v.strip() for v in args.views_mid.split(",")], None
+        elif args.recipe_mid not in RECIPES:
+            raise SystemExit("⛔ 未知 --recipe-mid %s，可用：%s" % (args.recipe_mid, "/".join(RECIPES)))
+        else:
+            nm, wm = RECIPES[args.recipe_mid]
+        if args.weights_mid:
+            ovm = {}
+            for kv in args.weights_mid.split(","):
+                k, sep, v = kv.strip().partition(":")
+                if not sep:
+                    raise SystemExit("⛔ --weights-mid 格式应为 名字:权重[,...]，看到 %r" % kv)
+                ovm[k.strip()] = float(v)
+            if nm is not None:
+                bad = [k for k in ovm if k not in nm]
+                if bad:
+                    raise SystemExit("⛔ --weights-mid 里的视角不在中分支配方内：%s" % bad)
+            wm = dict(wm or {})
+            wm.update(ovm)
+        if args.w_mid <= 0:
+            raise SystemExit("⛔ --w-mid 必须 > 0，给了 %g" % args.w_mid)
+        Xmid, mmid, _, nmid, _ = form(args.pool_mid, nm, wm)
+        if mmid["epoch"] != meta["epoch"]:
+            raise SystemExit("⛔ 中分支池与高分支不是同一个 ckpt：ep%s vs ep%s"
+                             % (mmid["epoch"], meta["epoch"]))
+        if mmid["n"] != meta["n"]:
+            raise SystemExit("⛔ 中分支池行数不同：%d vs %d" % (mmid["n"], meta["n"]))
+        print("  中分支池 @%dpx  recipe=%s  %d 视角：%s"
+              % (mmid["res"], args.recipe_mid, len(nmid), ",".join(nmid)))
+        if args.pool_lo:
+            # 三池：X = L2((X_lo + w_mid·X_mid + w_hi·X_hi)/(1 + w_mid + w_hi))；默认全 1 = 等权
+            X = l2((Xlo + args.w_mid * Xmid + args.w_hi * X) / (1.0 + args.w_mid + args.w_hi))
+            tag = "%s_ms3_%d_%d_%d" % (rname, mlo["res"], mmid["res"], meta["res"])
+            print("  ⚡ 三池聚合：@%d + @%d + @%d（w_hi=%.3g / w_mid=%.3g）"
+                  % (mlo["res"], mmid["res"], meta["res"], args.w_hi, args.w_mid))
+        else:
+            X = l2((Xmid + args.w_hi * X) / (1.0 + args.w_hi))
+            tag = "%s_ms%d_%d" % (rname, mmid["res"], meta["res"])
+
     lg = pred26.apply_head(X, head["W"], head["b"], head.get("s"),
                            meta.get("cosine", False), meta.get("subcenters", 0))
     pred = np.argmax(lg, 1)
@@ -287,7 +347,11 @@ def main():
                        recipe_lo=(args.recipe_lo if args.pool_lo else None),
                        views_lo=(nlo if args.pool_lo else None),
                        weights_lo_arg=args.weights_lo,
-                       pool=args.pool, pool_lo=args.pool_lo, epoch=meta["epoch"],
+                       recipe_mid=(args.recipe_mid if args.pool_mid else None),
+                       views_mid=nmid,
+                       weights_mid_arg=args.weights_mid, w_mid=args.w_mid,
+                       pool=args.pool, pool_lo=args.pool_lo, pool_mid=args.pool_mid,
+                       epoch=meta["epoch"],
                        res=meta["res"], created=stamp), fj, ensure_ascii=False, indent=2)
     print("  ⭐输出 -> %s\\pred_results.zip" % d)
 

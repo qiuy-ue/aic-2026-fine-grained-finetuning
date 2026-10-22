@@ -28,7 +28,7 @@ export AIC_CKPT=/path/to/ckpt_ep12.pt        # 训练产出的检查点（本仓
 bash reproduce.sh
 ```
 
-内部流程：`58_test_viewpool.py --res 544` → `58_test_viewpool.py --res 448` → `59_recipe_pack.py`（等权聚合）→ `74_balance_pack.py`（Sinkhorn T=1 软配额）→ 得到提交包形态（37,444 行 / 无表头 / 四位类号）。
+内部流程：`58_test_viewpool.py --res 640` → `--res 544` → `--res 448`（各 10 视角池）→ `59_recipe_pack.py --pool-mid`（三池等权聚合）→ `74_balance_pack.py`（Sinkhorn T=1 软配额）→ 提交包形态（37,444 行 / 无表头 / 四位类号）。
 
 ## 4. 训练精确复现（审计用）
 
@@ -37,7 +37,7 @@ export AIC_DATA_ROOT=/path/to/复赛数据集
 bash train_exact.sh
 ```
 
-- 13 项非默认参数全部固化，与训练记录逐项一致；
+- 放大配方参数（640px / 30ep / bs128）全部固化；基座配方（448 / 12ep）以注释保存在脚本末尾；
 - 训练侧依赖 `code/cache/{dup_exclude.txt, head_loss_sce.npz, noise_scores.npz}`（均由训练集生成，已内置）；
 - **GPU 非确定性**：训练结果统计上同分布、但非逐位相同；推理结果的复现以第 3 节的权重推理为准。
 
@@ -51,12 +51,12 @@ python verify_submission.py pred-results.zip
 
 ## 6. 硬件参考
 
-单卡 RTX 4090 D 24GB 可完成全部流程（12 ep × 448px × bs32 训练约 150 s/epoch；双池特征提取合计约 1 小时量级）；A100 40GB 亦可。
+放大配方的训练量约为基座的 5–6×（640px×30ep vs 448px×12ep）：A100 约 15–20 小时、RTX 4090 D 约 1 天+；三池特征提取合计约 2 小时量级（@4090D）。A100 40GB / 4090D 24GB 均可完成。
 
 ## 7. 已知坑
 
 见 [known-pitfalls.md](known-pitfalls.md) —— 13 条踩坑记录（几何错配、`/dev/shm`、伪装 JPG、mixup 实现、fold-all 权重、分辨率迁移、manifest 冻结等）。
 
-## 8. 大算力复现
+## 8. 基座配方（历史）
 
-算力充足时，可尝试 README 中的「⚡ 力大砖飞：算力放大配方」（640px / bs128 / 24–30ep / 三池 TTA）——这是一条**未实测组合**的放大路线，请按门控纪律（fold0 先验证 ≥ 基线 +0.30~0.50pp）自行验证。
+本仓库主配方为放大版；448 / 12ep 的基座配方（已验证 78.1% 本地一致率）命令以注释形式保留在 `train_exact.sh` 末尾，详细研究过程见 `docs/research-log.md`。
