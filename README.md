@@ -19,6 +19,7 @@
 ![Score](https://img.shields.io/badge/复赛-78-16A34A)
 ![Estimate](https://img.shields.io/badge/优化预估-78.5-7C3AED)
 ![Power](https://img.shields.io/badge/力大砖飞-算力放大配方-F59E0B)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Backbone](https://img.shields.io/badge/骨干-CLIP_ViT--B_32-DB2777)
 ![Method](https://img.shields.io/badge/方案-llrd--EMA_+_三池TTA_+_Sinkhorn-EE4C2C)
 ![Data](https://img.shields.io/badge/数据-750_类_·_148,694_训练图-0891B2)
@@ -198,6 +199,12 @@ flowchart LR
 ## 🛡 发布边界
 
 本仓库**不包含**：模型权重、赛题数据（训练/测试图片）、提交预测文件、组委会参考包、内部服务器地址与账号信息、团队成员个人信息。研究日志中引用的部分早期轮次脚本（r 系列 / b0 训练链）未随仓库发布，以日志与结论为准。
+
+## 📄 许可证
+
+本仓库的**代码与文档**采用 [MIT License](LICENSE)（Copyright © 2026 [qiuy-ue](https://github.com/qiuy-ue)）。
+
+> 范围说明：赛题数据（训练/测试图像）、官方结果包与组委会参考包所有权归赛事主办方，不随本仓库分发，不适用本许可证；本仓库中的成绩与实验结论为比赛环境下的记录，引用或转载时请保留出处。
 
 ## 🙏 致谢与声明
 

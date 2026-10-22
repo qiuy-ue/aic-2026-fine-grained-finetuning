@@ -19,6 +19,7 @@
 ![Score](https://img.shields.io/badge/Semifinal-78-16A34A)
 ![Estimate](https://img.shields.io/badge/Optimization_Est.-78.5-7C3AED)
 ![Power](https://img.shields.io/badge/Brute--Force-Scaling_Recipe-F59E0B)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Backbone](https://img.shields.io/badge/Backbone-CLIP_ViT--B_32-DB2777)
 ![Method](https://img.shields.io/badge/Recipe-llrd--EMA_+_Triple_Pool_TTA_+_Sinkhorn-EE4C2C)
 ![Data](https://img.shields.io/badge/Data-750_classes_·_148,694_train_images-0891B2)
@@ -186,6 +187,12 @@ This section compares the **validated recipe** (`train_exact.sh`, local agreemen
 ## 🛡 Release Boundary
 
 This repository **does not contain**: model weights, competition data (train/test images), submission predictions, the organizer reference package, internal server addresses/accounts, or team-member personal information. Some early-round scripts (r-series / b0 training chain) referenced in the research log are not part of this release; the log and conclusions take precedence.
+
+## 📄 License
+
+The **code and documentation** in this repository are released under the [MIT License](LICENSE) (Copyright © 2026 [qiuy-ue](https://github.com/qiuy-ue)).
+
+> Scope: competition data (train/test images), official result packages and the organizer reference package belong to the organizers, are not distributed here, and are not covered by this license; the scores and conclusions are records under competition conditions — please keep attribution when reusing.
 
 ## 🙏 Acknowledgements
 
