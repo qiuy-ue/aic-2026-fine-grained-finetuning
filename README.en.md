@@ -55,11 +55,10 @@
 
 ```mermaid
 flowchart LR
-    A[Data audit<br/>dups / mislabels / bad files] --> B[CLIP ViT-B/32<br/>llrd-EMA fine-tune, 12ep @ 448]
-    B --> C[C3 dual-pool TTA<br/>544/448 × 10 views · equal weight]
-    C --> D[Sinkhorn T=1<br/>soft-quota calibration]
-    D --> E[Semifinal 78]
-    E -.optimization roadmap.-> F[KD student + consensus quota<br/>estimate 78.5]
+    A[Data audit<br/>dups / mislabels / bad files] --> B[CLIP ViT-B/32<br/>scaled llrd-EMA fine-tune<br/>640px · 24–30ep · bs128]
+    B --> C[C3 three-pool TTA<br/>640/544/448 × 10 views · equal weight]
+    C --> D[Sinkhorn T=1 soft quota<br/>+ consensus balancing]
+    D --> E[Brute-force recipe<br/>target: beat the 78.5 estimate]
 ```
 
 ## 🧠 The 78-Point Solution (⚡ scaled recipe)
