@@ -62,30 +62,32 @@ flowchart LR
     E -.optimization roadmap.-> F[KD student + consensus quota<br/>estimate 78.5]
 ```
 
-## 🧠 The 78-Point Solution
+## 🧠 The 78-Point Solution (⚡ scaled recipe)
 
-### Training recipe (llrd-EMA)
+> What we submitted and measured is the **validated 448 / bs32 / 12ep recipe** (`train_exact.sh`, local agreement 78.1%). The tables below are the **compute-scaled recipe** built on it — parameters turned up, for reproducers with ample compute. Goal: beat the **78.5 estimate**. Full comparison and rationale: [⚡ Brute-Force Scaling](#-brute-force-scaling-recipe-advanced).
+
+### Training recipe (llrd-EMA · ⚡ scaled)
 
 | Setting | Value |
 | --- | --- |
-| Resolution / epochs / batch | 448 / 12 / 32 |
-| backbone lr · llrd · head lr | 2e-5 · 0.85 · 1e-3 |
-| weight decay · label smoothing | 0.05 · 0.1 |
+| Resolution / epochs / batch | **640 / 24–30 / 128** |
+| backbone lr · llrd · head lr | **3e-5** · 0.85 · **2e-3** |
+| weight decay · label smoothing | 0.05 · 0.1–0.15 |
 | mixup · cutmix · mix prob | 0.8 · 1.0 · 0.7 |
-| EMA · drop_path · random erasing | 0.9995 · 0.2 · 0.25 |
+| EMA · drop_path · random erasing | **0.9996** · **0.3** · **0.35** |
 | degrade_p · cosine margin | 0.875 · 0.2 |
 | co-teaching · small-class oversample | on (forget 0.05) · ×4.0 |
 | Data side | duplicate exclusion list + SCE head init · seed 0 · full data |
 
-All 13 non-default arguments are pinned in `train_exact.sh` and match the 53-entry training `history.json` record; training-side caches ship in `code/cache/`.
+**Why these numbers**: 640px must be trained **end-to-end** with the interpolated pos_embed (we measured −4pp for direct cross-resolution inference); batch ×4 comes with lr (conservative sqrt scaling) and stronger regularization (anti-memorization against the 2.2% cross-label conflicts); more epochs only help when scaled together with resolution (448 peaked at 12ep and capped at 60ep) — use **EMA + pre-registered early stopping** as the backstop. The validated baseline's 13 non-default arguments are pinned in `train_exact.sh` (matching the 53-entry record); training-side caches ship in `code/cache/`.
 
-### Inference pipeline (C3 dual-pool equal-weight TTA)
+### Inference pipeline (three-pool equal-weight TTA · ⚡ scaled)
 
-1. **10 views each at 544px and 448px**: orig + mild0–4 ×5 + cc085/070/055/040 ×4;
-2. Dual-pool features are **equal-weight averaged** (L2-normalized) → cosine classifier → logits;
-3. **Sinkhorn T=1 soft quota** (100 column-scaling rounds, target 49.93 per class; output-side class bias only, no forced flips; 16–70 per class, median 50).
+1. **10 views each at 640 / 544 / 448 px**: orig + mild0–4 ×5 + cc085/070/055/040 ×4;
+2. Three-pool features are **equal-weight averaged** (L2-normalized) → cosine classifier → logits;
+3. **Sinkhorn T=1 soft quota** (100 column-scaling rounds, target 49.93/class; output-side bias only; 16–70 per class, median 50), optionally + consensus quota balancing.
 
-The only change vs. the previously submitted 77.69 package: view aggregation switched from `cc ×3` weighting to **fully equal weights** (+0.075pp, more stable under distribution shift).
+> Main change vs. the 77.69 line package: view aggregation from `cc ×3` weighting to **fully equal weights** (more stable under shift); the scaled recipe additionally expands the view pools from two (544/448) to three.
 
 ## 🚀 Optimization Roadmap (est. 78.5)
 
@@ -103,7 +105,7 @@ The final solution is composed of three components, each with single-variable me
 
 ## ⚡ Brute-Force Scaling Recipe (Advanced)
 
-The recipe above is our **measured** reproduction baseline (78.1%). With more compute (multi-GPU A100 / H100, longer training windows), you can take this **compute-for-ceiling** scaling route — the goal: give reproducers a shot at beating the 78.5 estimate.
+This section compares the **validated recipe** (`train_exact.sh`, local agreement 78.1%) with the **scaled recipe** item by item. With more compute (multi-GPU A100 / H100, longer training windows), take the compute-for-ceiling route — the goal: give reproducers a shot at beating the 78.5 estimate.
 
 | Setting | Validated recipe (baseline) | ⚡ Scaled recipe (big VRAM) |
 | --- | --- | --- |
