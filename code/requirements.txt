@@ -1,0 +1,15 @@
+# 与我们实际运行的环境逐项一致（2026-09-27 从运行环境里读出的版本号）。
+# torch / torchvision 需从 PyTorch 官方 CUDA 11.8 源安装：
+#   pip install torch==2.5.0 torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cu118
+# 然后：
+#   pip install -r requirements.txt
+# OpenAI clip 库不用 pip 装：源码随工程附带在 third_party/CLIP/，由 scripts/_bootstrap.py 自动接入。
+numpy==2.4.6
+Pillow==12.3.0
+scikit-learn==1.9.0
+scipy==1.17.1
+tqdm==4.68.4
+# 以下是 openai/clip 库本身的依赖（见 third_party/CLIP/requirements.txt）
+ftfy==6.3.1
+regex==2026.7.10
+packaging==26.0

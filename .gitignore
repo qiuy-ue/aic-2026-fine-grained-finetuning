@@ -1,0 +1,16 @@
+# 赛题数据与运行产物不进入版本库
+复赛数据集/
+初赛数据集/
+data/
+code/models/
+code/runs/
+runs/
+*.pt
+*.pth
+*.safetensors
+*.npy
+*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
