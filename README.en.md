@@ -84,8 +84,6 @@ flowchart LR
 2. Three-pool features are **equal-weight averaged** (L2-normalized) → cosine classifier → logits;
 3. **Sinkhorn T=1 soft quota** (100 column-scaling rounds, target 49.93/class; output-side bias only; 16–70 per class, median 50), optionally + consensus quota balancing.
 
-> Main change vs. the 77.69 line package: view aggregation from `cc ×3` weighting to **fully equal weights** (more stable under shift); the scaled recipe additionally expands the view pools from two (544/448) to three.
-
 ## 🚀 Solution Components (est. 78.5)
 
 The final solution is composed of three components, each with single-variable measurements from the research process ([docs/research-log.md](docs/research-log.md)):
