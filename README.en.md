@@ -64,8 +64,6 @@ flowchart LR
 
 ## 🧠 The 78-Point Solution (⚡ scaled recipe)
 
-> What we submitted and measured is the **validated 448 / bs32 / 12ep recipe** (`train_exact.sh`, local agreement 78.1%). The tables below are the **compute-scaled recipe** built on it — parameters turned up, for reproducers with ample compute. Goal: beat the **78.5 estimate**. Full comparison and rationale: [⚡ Brute-Force Scaling](#-brute-force-scaling-recipe-advanced).
-
 ### Training recipe (llrd-EMA · ⚡ scaled)
 
 | Setting | Value |
